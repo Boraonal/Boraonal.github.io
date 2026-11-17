@@ -338,7 +338,61 @@
     font-size: 18px;
     border: 2px solid var(--ink);
   }
-  audio { width: 100%; margin-top: 4px; }
+  /* Audio panel: one card per game, a short tracklist with a custom player. */
+  .album {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 18px;
+    margin-bottom: 16px;
+    padding: 14px;
+    border: 3px solid var(--ink);
+    background: rgba(255, 240, 200, .18);
+    box-shadow: inset 0 0 0 2px rgba(255, 240, 200, .25);
+  }
+  .album-cover {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border: 3px solid var(--ink);
+  }
+  .album h3 { margin: 0 0 6px; font: 12px/1.5 'Press Start 2P', monospace; }
+  .album-note { margin: 0 0 10px; }
+  .tracklist { margin: 0; padding: 0; list-style: none; }
+  .track {
+    display: grid;
+    grid-template-columns: 34px 1fr auto;
+    align-items: center;
+    gap: 2px 12px;
+    padding: 6px 0;
+    border-top: 2px dotted var(--ink);
+  }
+  .track-play {
+    grid-row: span 2;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    cursor: pointer;
+    color: #e8c47a;
+    background: radial-gradient(circle at 50% 40%, #4a2a10, var(--ink) 75%);
+    border: 2px solid #7a5a2a;
+    box-shadow: 0 0 0 2px var(--ink);
+  }
+  .track-play:hover,
+  .track-play:focus-visible { outline: none; color: #fff3c8; border-color: var(--gold); }
+  .track-play svg { height: 14px; width: auto; shape-rendering: crispEdges; fill: currentColor; }
+  .track-time { font-size: 19px; opacity: .75; }
+  .track-bar {
+    grid-column: 2 / -1;
+    height: 6px;
+    cursor: pointer;
+    background: rgba(42, 23, 8, .25);
+    border: 1px solid var(--ink);
+  }
+  .track-fill { display: block; width: 0; height: 100%; background: var(--ink); }
+  .track.is-playing .track-title { font-weight: bold; }
 
   /* Character-sheet header: framed portrait beside the bio. */
   .profile {
@@ -632,6 +686,7 @@
 
   @media (max-width: 640px) {
     .item, .item--feature { grid-template-columns: 1fr; }
+    .album { grid-template-columns: 96px 1fr; gap: 12px; }
     .collage { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 90px; }
     .dev-hint { flex-wrap: wrap; }
     .dev-hint .slot { display: none; }
@@ -753,28 +808,47 @@
       </section>
 
       <section class="panel-section" id="panel-audio">
-        <article class="item">
-          <div class="thumb" style="--img:url('assets/img/audio1.png')"></div>
+        <!-- One .album per game. Each .track plays the file in its data-src; the time is shown until it loads. -->
+        <article class="album">
+          <img class="album-cover" src="https://github.com/user-attachments/assets/c830700c-fc8d-4547-8516-0ccf11c8efa8" alt="Yetti Cafe" loading="lazy">
           <div>
-            <h3>TRACK / SOUNDTRACK TITLE</h3>
-            <p>Mood, instrumentation, which project it was made for.</p>
-            <div><span class="tag">FL Studio</span><span class="tag">OST</span></div>
-            <audio controls preload="none" src="assets/audio/track1.mp3"></audio>
-          </div>
-          <div class="devlog dev-only">
-            <h4>BEHIND THE SCENES</h4>
-            <p>Session screenshots: playlist, mixer chain, automation.</p>
-            <div class="shots">
-              <img src="assets/img/dev/audio1-1.png" alt="FL Studio screenshot 1" loading="lazy">
-            </div>
+            <h3>YETTI CAFE MUSIC</h3>
+            <p class="album-note">Main-menu music for our Cozy Winter Jam 2026 entry.</p>
+            <ol class="tracklist">
+            <li class="track" data-src="assets/audio/yetti-cafe-main-menu.mp3">
+              <button class="track-play" type="button" aria-label="Play Main Menu Theme"></button>
+              <span class="track-title">Main Menu Theme</span>
+              <span class="track-time" data-duration="3:38">3:38</span>
+              <span class="track-bar"><span class="track-fill"></span></span>
+            </li>
+            </ol>
           </div>
         </article>
-        <article class="item">
-          <div class="thumb" style="--img:url('assets/img/audio2.png')"></div>
+        <article class="album">
+          <img class="album-cover" src="https://github.com/user-attachments/assets/a4861340-c6e0-482f-9f3d-86a7b57ea9af" alt="Reluctant Blade" loading="lazy">
           <div>
-            <h3>TRACK TITLE 2</h3>
-            <p>Description placeholder.</p>
-            <audio controls preload="none" src="assets/audio/track2.mp3"></audio>
+            <h3>RELUCTANT BLADE MUSIC</h3>
+            <p class="album-note">Concept soundtracks written for the game&rsquo;s world.</p>
+            <ol class="tracklist">
+            <li class="track" data-src="assets/audio/reluctant-blade-main-menu.mp3">
+              <button class="track-play" type="button" aria-label="Play Main Menu Theme"></button>
+              <span class="track-title">Main Menu Theme</span>
+              <span class="track-time" data-duration="0:35">0:35</span>
+              <span class="track-bar"><span class="track-fill"></span></span>
+            </li>
+            <li class="track" data-src="assets/audio/reluctant-blade-soundtrack-1.mp3">
+              <button class="track-play" type="button" aria-label="Play Soundtrack I"></button>
+              <span class="track-title">Soundtrack I</span>
+              <span class="track-time" data-duration="0:54">0:54</span>
+              <span class="track-bar"><span class="track-fill"></span></span>
+            </li>
+            <li class="track" data-src="assets/audio/reluctant-blade-village-bazaar.mp3">
+              <button class="track-play" type="button" aria-label="Play Village Bazaar"></button>
+              <span class="track-title">Village Bazaar</span>
+              <span class="track-time" data-duration="0:22">0:22</span>
+              <span class="track-bar"><span class="track-fill"></span></span>
+            </li>
+            </ol>
           </div>
         </article>
       </section>
@@ -2277,6 +2351,7 @@ function openCategory(character, source) {
 function returnToCampfire() {
   if (state !== 'panel') return;
   setState('returning');
+  stopMusic();
   ui.overlay.setAttribute('aria-hidden', 'true');
 
   const { duration } = CONFIG.zoom;
@@ -2375,6 +2450,28 @@ const PIXEL_ICONS = {
     '.....###.....',
     '...#######...',
   ],
+  play: [
+    '#....',
+    '##...',
+    '###..',
+    '####.',
+    '#####',
+    '####.',
+    '###..',
+    '##...',
+    '#....',
+  ],
+  pause: [
+    '##.##',
+    '##.##',
+    '##.##',
+    '##.##',
+    '##.##',
+    '##.##',
+    '##.##',
+    '##.##',
+    '##.##',
+  ],
   bolt: [
     '...###.',
     '..###..',
@@ -2403,6 +2500,65 @@ function pixelIcon(rows) {
 
 document.querySelectorAll('[data-icon]').forEach((slot) => {
   slot.innerHTML = pixelIcon(PIXEL_ICONS[slot.dataset.icon]); // data-icon adındaki ikonu çiz
+});
+
+/* -------------------------------------------------------------- music player */
+
+// One shared <audio> for the whole panel, so only one track can play at a time.
+const music = { audio: new Audio(), track: null };
+music.audio.preload = 'none';
+
+const formatTime = (seconds) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+
+function renderTrack(track, playing) {
+  track.classList.toggle('is-playing', playing);
+  const button = track.querySelector('.track-play');
+  const title = track.querySelector('.track-title').textContent;
+  button.innerHTML = pixelIcon(PIXEL_ICONS[playing ? 'pause' : 'play']);
+  button.setAttribute('aria-label', `${playing ? 'Pause' : 'Play'} ${title}`);
+}
+
+function resetTrack(track) {
+  renderTrack(track, false);
+  const time = track.querySelector('.track-time');
+  time.textContent = time.dataset.duration;
+  track.querySelector('.track-fill').style.width = '0';
+}
+
+function toggleTrack(track) {
+  if (music.track === track) {
+    if (music.audio.paused) music.audio.play();
+    else music.audio.pause();
+    return;
+  }
+  if (music.track) resetTrack(music.track);
+  music.track = track;
+  music.audio.src = track.dataset.src;
+  music.audio.play();
+}
+
+function stopMusic() {
+  music.audio.pause();
+}
+
+music.audio.addEventListener('play', () => renderTrack(music.track, true));
+music.audio.addEventListener('pause', () => renderTrack(music.track, false));
+music.audio.addEventListener('ended', () => resetTrack(music.track));
+music.audio.addEventListener('timeupdate', () => {
+  const { currentTime, duration } = music.audio;
+  if (!duration) return;
+  music.track.querySelector('.track-fill').style.width = `${(currentTime / duration) * 100}%`;
+  music.track.querySelector('.track-time').textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
+});
+
+document.querySelectorAll('.track').forEach((track) => {
+  renderTrack(track, false);
+  track.querySelector('.track-play').addEventListener('click', () => toggleTrack(track));
+  track.querySelector('.track-bar').addEventListener('click', (event) => {
+    if (music.track !== track || !music.audio.duration) return;
+    const bar = event.currentTarget.getBoundingClientRect();
+    music.audio.currentTime = ((event.clientX - bar.left) / bar.width) * music.audio.duration;
+  });
 });
 
 /* ----------------------------------------------------------- developer mode */
