@@ -10,6 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
 
+<!-- Import-map polyfill for older Safari / iPadOS; does nothing where import maps already work. -->
+<script async src="https://cdn.jsdelivr.net/npm/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
 <script type="importmap">
 {
   "imports": {
@@ -46,6 +48,7 @@
     position: fixed;
     inset: 0;
     z-index: 0;
+    touch-action: none;            /* dokunuşu kaydırma/yakınlaştırma sanmasın, doğrudan sahneye gelsin */
     display: block;
     width: 100%;
     height: 100%;
@@ -181,6 +184,25 @@
     transform: translateY(-300%);
   }
   #a11yNav button:focus { transform: none; }
+
+  /* Touch screens have no hover, so the three categories also sit as buttons along the bottom. */
+  @media (hover: none) {
+    #a11yNav {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: max(14px, env(safe-area-inset-bottom));
+      z-index: 3;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 10px;
+      transition: opacity .4s;
+    }
+    #a11yNav button { position: static; transform: none; padding: 10px 12px; font-size: 9px; }
+    body:not([data-state="idle"]) #a11yNav { opacity: 0; pointer-events: none; } /* sadece kamp ateşindeyken */
+  }
 
   /* ------------------------------------------------------------ parchment */
 
@@ -1727,7 +1749,7 @@ function createCampfire() {
   });
   const smoke = new ParticleEmitter({                 // alevlerin üstünden yavaşça yükselen koyu duman
     count: 18, baseY: 1.4, spread: 0.25, lateral: 0.15, drift: 0.6, converge: 0,
-    life: [3, 5], rise: [0.4, 0.7], size: [1.4, 2.4], alpha: 0.22, growth: 1.2,
+    life: [3, 5], rise: [0.4, 0.7], size: [1.4, 2.4], alpha: 0.1, growth: 1.2,
     colors: [0x4a4038, 0x30323a, 0x1c2028], blending: THREE.NormalBlending,
   });
 
@@ -1769,7 +1791,7 @@ const campfire = createCampfire();
 // Placeholder figures. They are replaced as soon as a character gets a modelUrl.
 function createWarrior() {
   const g = new THREE.Group();
-  const steel = lambert(0x6b6f7a), cloth = lambert(0x5a1414), dark = lambert(0x2a2a30), blade = lambert(0xaab0bc);
+  const steel = lambert(0x80858f), cloth = lambert(0x6a1a18), dark = lambert(0x34343c), blade = lambert(0xb4bac6);
   addPart(g, box(0.28, 0.9, 0.3), dark, -0.22, 0.45, 0);
   addPart(g, box(0.28, 0.9, 0.3), dark, 0.22, 0.45, 0);
   addPart(g, box(0.95, 0.95, 0.5), steel, 0, 1.35, 0);
@@ -2081,6 +2103,38 @@ function pick(clientX, clientY) {
   return hit?.object.userData.character ?? null;
 }
 
+// Parmak fareden kalındır: tam isabet yoksa, dokunulan noktaya ekranda en yakın karakteri seç.
+const TOUCH_SLOP = 40;                 // karakterin ekrandaki kutusunun etrafında kaç piksel pay bırakılsın
+const screenBase = new THREE.Vector3();
+const screenTop = new THREE.Vector3();
+
+function toScreen(vector) {
+  vector.project(camera);             // dünya konumu → -1..1 arası ekran koordinatı
+  vector.x = (vector.x * 0.5 + 0.5) * innerWidth;
+  vector.y = (-vector.y * 0.5 + 0.5) * innerHeight;
+  return vector;
+}
+
+function pickForgiving(clientX, clientY) {
+  const direct = pick(clientX, clientY);
+  if (direct) return direct;
+
+  let best = null;
+  let bestDistance = Infinity;
+  for (const character of characters) {
+    toScreen(screenBase.copy(character.root.position));                        // ayak hizası
+    toScreen(screenTop.copy(character.root.position).setY(character.tooltipHeight)); // baş hizası
+    const halfWidth = (screenBase.y - screenTop.y) * 0.35 + TOUCH_SLOP;         // boyuna göre genişlik + pay
+    const dx = Math.abs(clientX - screenBase.x);
+    const insideY = clientY > screenTop.y - TOUCH_SLOP && clientY < screenBase.y + TOUCH_SLOP;
+    if (dx < halfWidth && insideY && dx < bestDistance) {
+      best = character;
+      bestDistance = dx;
+    }
+  }
+  return best;
+}
+
 addEventListener('pointermove', (event) => {
   pointer.nx = (event.clientX / innerWidth) * 2 - 1;
   pointer.ny = (event.clientY / innerHeight) * 2 - 1;
@@ -2094,10 +2148,24 @@ addEventListener('pointermove', (event) => {
 document.documentElement.addEventListener('pointerleave', () => {
   if (selection.source === 'pointer') select(null);
 });
-canvas.addEventListener('click', (event) => {
+// "click" yerine pointerdown + pointerup: fare, parmak ve kalem için aynı şekilde çalışır.
+const tap = { id: null, x: 0, y: 0 };
+canvas.addEventListener('pointerdown', (event) => {
+  tap.id = event.pointerId;            // hangi parmak/fare olduğunu hatırla
+  tap.x = event.clientX;
+  tap.y = event.clientY;
+});
+canvas.addEventListener('pointerup', (event) => {
+  if (event.pointerId !== tap.id) return;
+  tap.id = null;
+  if (Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 12) return; // kaydırdıysa dokunma sayma
   if (state !== 'idle') return;
-  const character = pick(event.clientX, event.clientY);
-  if (character) openCategory(character, 'pointer');
+
+  const isMouse = event.pointerType === 'mouse';
+  const character = isMouse ? pick(event.clientX, event.clientY) : pickForgiving(event.clientX, event.clientY);
+  if (!character) return;
+  if (!isMouse) select(character, 'pointer'); // dokunmada hover yok: önce seçili görünsün
+  openCategory(character, 'pointer');
 });
 
 // Enter/Space bir butonun üzerindeyken o butona aittir, karakter seçimine değil.
@@ -2178,6 +2246,7 @@ function startIntro() {
     .to(ui.hud, { autoAlpha: 1, duration: 1.5 }, 1.8);                     // HUD belirir
 }
 ui.titleScreen.addEventListener('pointerdown', startIntro);
+ui.titleScreen.addEventListener('click', startIntro); // eski mobil tarayıcılar için yedek; startIntro iki kez çalışmaz
 
 let lastOpened = null; // geri dönünce klavye seçimini aynı karaktere geri koymak için
 
